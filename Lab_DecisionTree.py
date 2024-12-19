@@ -6,6 +6,7 @@ from sklearn.tree import DecisionTreeClassifier, export_graphviz
 import graphviz
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
 def load_breast_cancer_data():
     """Load the breast cancer dataset from UCI repository"""
@@ -157,6 +158,48 @@ def build_and_visualize_trees(splits, feature_names):
         print("\nTop 5 most important features:")
         print(importances.head())
 
+def evaluate_classifier(clf, X_test, y_test):
+    """Evaluate the classifier and print the classification report and confusion matrix"""
+    y_pred = clf.predict(X_test)
+    print("Classification Report:")
+    print(classification_report(y_test, y_pred))
+    print("Confusion Matrix:")
+    print(confusion_matrix(y_test, y_pred))
+    return accuracy_score(y_test, y_pred)
+
+def analyze_tree_depth(splits, feature_names):
+    """Analyze the effect of tree depth on classification accuracy"""
+    depths = [None, 2, 3, 4, 5, 6, 7]
+    accuracies = []
+
+    for depth in depths:
+        clf = DecisionTreeClassifier(criterion='entropy', max_depth=depth, random_state=42)
+        clf.fit(splits['80_20']['feature_train'], splits['80_20']['label_train'])
+        accuracy = evaluate_classifier(clf, splits['80_20']['feature_test'], splits['80_20']['label_test'])
+        accuracies.append(accuracy)
+        
+        # Visualize the tree
+        dot_data = export_graphviz(
+            clf,
+            feature_names=feature_names,  
+            class_names=['malignant', 'benign'],
+            filled=True,
+            rounded=True,
+            special_characters=True,
+            proportion=True
+        )
+        graph = graphviz.Source(dot_data)
+        graph.render(f"decision_tree_depth_{depth}")
+
+    # Plot accuracy vs. tree depth
+    plt.figure()
+    plt.plot(depths, accuracies, marker='o')
+    plt.xlabel('Tree Depth')
+    plt.ylabel('Accuracy')
+    plt.title('Effect of Tree Depth on Accuracy')
+    plt.grid(True)
+    plt.show()
+
 def main():
     # Load data
     print("Loading breast cancer dataset from UCI repository...")
@@ -177,6 +220,15 @@ def main():
     # Build and visualize decision trees (Phần mới thêm cho 2.2)
     print("\nBuilding and visualizing decision trees...")
     build_and_visualize_trees(splits, features.columns)
+    
+    # Evaluate decision tree classifiers (2.3)
+    print("\nEvaluating decision tree classifiers...")
+    clf = build_decision_tree(splits['80_20']['feature_train'], splits['80_20']['label_train'])
+    evaluate_classifier(clf, splits['80_20']['feature_test'], splits['80_20']['label_test'])
+    
+    # Analyze tree depth and accuracy (2.4)
+    print("\nAnalyzing tree depth and accuracy...")
+    analyze_tree_depth(splits, features.columns)
 
 if __name__ == "__main__":
     main()
